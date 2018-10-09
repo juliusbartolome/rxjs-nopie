@@ -4,14 +4,26 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
     entry: {
-        app: './src/index.js'
+        app: './src/index'
     },
     plugins: [
         new CleanWebpackPlugin(['dist']),
         new HtmlWebpackPlugin({
-            title: 'Practice - RxJS and Webpack'
+            filename: 'index.html',
+            template: 'src/index.html'
         })
     ],
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/,
+                loader: 'ts-loader' 
+            }
+        ]
+    },
+    resolve: {
+        extensions: ['.ts', '.tsx', '.js']
+    },
     output: {
         filename: '[name].bundles.js',
         path: path.resolve(__dirname, 'dist')
