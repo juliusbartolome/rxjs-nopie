@@ -1,4 +1,4 @@
-import { fromEvent, Observable } from "rxjs";
+import { fromEvent, Observable, from, defer } from "rxjs";
 import { flatMap, delay, scan, retryWhen, takeWhile } from "rxjs/operators";
 
 let output = document.getElementById("output");
@@ -19,12 +19,19 @@ function load(url: string) {
         xhr.open("GET", url);
         xhr.send();
     }).pipe(
-        retryWhen(retryStrategy({attempts: 5, delayValue: 1500}))
+        retryWhen(retryStrategy({ attempts: 5, delayValue: 1500 }))
     );
 }
 
-function retryStrategy({attempts = 3, delayValue = 10}) {
-    return function(errors) {
+function loadWithFetch(url: string) {
+    return defer(() => {
+        let promise = fetch(url).then(r => r.json());
+        return from(promise);
+    });
+}
+
+function retryStrategy({ attempts = 3, delayValue = 10 }) {
+    return function (errors) {
         return errors.pipe(
             scan(acc => acc + 1, 0),
             takeWhile(acc => acc < attempts),
@@ -45,9 +52,9 @@ function renderPosts(posts) {
 
 
 click.pipe(
-    flatMap(e => load("https://jsonplaceholder.typicode.com/posts2"))
+    flatMap(e => loadWithFetch("https://jsonplaceholder.typicode.com/posts"))
 ).subscribe(
-  renderPosts,
-  e => console.error(`error: ${e}`),
-  () => console.log("complete")
+    renderPosts,
+    e => console.error(`error: ${e}`),
+    () => console.log("complete")
 );
