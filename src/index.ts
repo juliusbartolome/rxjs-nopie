@@ -1,26 +1,31 @@
-import { fromEvent } from "rxjs";
+import { fromEvent, Observable } from "rxjs";
 import { map, delay } from "rxjs/operators";
 
-let circle = document.getElementById("circle");
-let source = fromEvent(document, "mousemove")
-                .pipe(
-                    map((e: MouseEvent) => {
-                        return {
-                            x: e.clientX,
-                            y: e.clientY
-                        };
-                    }),
-                    delay(300)
-                );
+let output = document.getElementById("output");
+let button = document.getElementById("button");
 
-function onNext(value) {
-    console.log(value);
-    circle.style.left = `${value.x}px`;
-    circle.style.top = `${value.y}px`;
+let click = fromEvent(button, "click");
+
+function load(url: string) {
+    let xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("load", () => {
+        let posts = JSON.parse(xhr.responseText);
+        posts.forEach(post => {
+            let div = document.createElement("div");
+            let hr = document.createElement("hr");
+            div.innerText = post.title;
+            output.appendChild(div);
+            output.appendChild(hr);
+        });
+    });
+
+    xhr.open("GET", url);
+    xhr.send();
 }
 
-source.subscribe(
-    onNext,
-    e => console.log(`error: ${e}`),
+click.subscribe(
+    value => load("https://jsonplaceholder.typicode.com/posts"),
+    e => console.error(`error: ${e}`),
     () => console.log("complete")
 );
