@@ -4,16 +4,23 @@ import { delay, scan, retryWhen } from "rxjs/operators";
 export function load(url: string) {
     return Observable.create(observer => {
         let xhr = new XMLHttpRequest();
-        xhr.addEventListener("load", () => {
+        let onLoad = () => {
             if (xhr.status == 200) {
                 observer.next(JSON.parse(xhr.responseText))
             } else {
                 observer.error(xhr.status);
             }
-        });
+        };
 
+        xhr.addEventListener("load", onLoad);
         xhr.open("GET", url);
         xhr.send();
+
+        return () => {
+            console.log("cleaning up load method..");
+            xhr.removeEventListener("load", onLoad);
+            xhr.abort();
+        };
     }).pipe(
         retryWhen(retryStrategy({ attempts: 5, delayValue: 1500 }))
     );

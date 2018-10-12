@@ -1,6 +1,6 @@
 import { fromEvent, from, of, merge, Observable, throwError } from "rxjs";
 import { flatMap, catchError } from "rxjs/operators";
-import { loadWithFetch } from "./dataLoader";
+import { load, loadWithFetch } from "./dataLoader";
 
 // let source = merge(
 //     of(1),
@@ -46,12 +46,16 @@ function renderPosts(posts) {
     });
 }
 
-loadWithFetch("https://jsonplaceholder.typicode.com/postss")
+let subscription = load("https://jsonplaceholder.typicode.com/posts")
     .subscribe(
         renderPosts,
         e => console.log(`error: ${e}`),
         () => console.log("complete")
     );
+
+console.log(subscription);
+subscription.unsubscribe();
+
 
 click.pipe(
     flatMap(e => loadWithFetch("https://jsonplaceholder.typicode.com/posts"))
