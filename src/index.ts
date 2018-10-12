@@ -1,60 +1,55 @@
-import { fromEvent, Observable, from, defer } from "rxjs";
-import { flatMap, delay, scan, retryWhen, takeWhile } from "rxjs/operators";
+import { fromEvent, from, of, merge, Observable, throwError } from "rxjs";
+import { flatMap, catchError } from "rxjs/operators";
+import { loadWithFetch } from "./dataLoader";
 
-let output = document.getElementById("output");
-let button = document.getElementById("button");
+let source = merge(
+    of(1),
+    from([2, 3, 4]),
+    throwError(new Error("Stop!")),
+    of(5)
+);
 
-let click = fromEvent(button, "click");
+// let source = Observable.create(observer => {
+//     observer.next(1);
+//     observer.next(2);
+//     observer.error("Stop!");
+//     throw new Error("Stop! Error thrown!");
+//     observer.next(3);
+//     observer.complete();
+// });
 
-function load(url: string) {
-    return Observable.create(observer => {
-        let xhr = new XMLHttpRequest();
-        xhr.addEventListener("load", () => {
-            if (xhr.status == 200) {
-                observer.next(JSON.parse(xhr.responseText))
-            } else {
-                observer.error(xhr.status);
-            }
-        });
-        xhr.open("GET", url);
-        xhr.send();
-    }).pipe(
-        retryWhen(retryStrategy({ attempts: 5, delayValue: 1500 }))
-    );
-}
+source = source.pipe(
+    catchError(error => {
+        console.error(`caught: ${error}`);
+        return of(10);
+    })
+);
 
-function loadWithFetch(url: string) {
-    return defer(() => {
-        let promise = fetch(url).then(r => r.json());
-        return from(promise);
-    });
-}
-
-function retryStrategy({ attempts = 3, delayValue = 10 }) {
-    return function (errors) {
-        return errors.pipe(
-            scan(acc => acc + 1, 0),
-            takeWhile(acc => acc < attempts),
-            delay(delayValue)
-        );
-    }
-}
-
-function renderPosts(posts) {
-    posts.forEach(post => {
-        let div = document.createElement("div");
-        let hr = document.createElement("hr");
-        div.innerText = post.title;
-        output.appendChild(div);
-        output.appendChild(hr);
-    });
-}
-
-
-click.pipe(
-    flatMap(e => loadWithFetch("https://jsonplaceholder.typicode.com/posts"))
-).subscribe(
-    renderPosts,
-    e => console.error(`error: ${e}`),
+source.subscribe(
+    value => console.log(`value: ${value}`),
+    error => console.error(`error: ${error}`),
     () => console.log("complete")
 );
+
+// let output = document.getElementById("output");
+// let button = document.getElementById("button");
+
+// let click = fromEvent(button, "click");
+
+// function renderPosts(posts) {
+//     posts.forEach(post => {
+//         let div = document.createElement("div");
+//         let hr = document.createElement("hr");
+//         div.innerText = post.title;
+//         output.appendChild(div);
+//         output.appendChild(hr);
+//     });
+// }
+
+// click.pipe(
+//     flatMap(e => loadWithFetch("https://jsonplaceholder.typicode.com/posts"))
+// ).subscribe(
+//     renderPosts,
+//     e => console.error(`error: ${e}`),
+//     () => console.log("complete")
+// );
