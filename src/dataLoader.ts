@@ -1,5 +1,5 @@
 import { from, Observable, defer } from "rxjs";
-import { delay, scan, retryWhen, takeWhile } from "rxjs/operators";
+import { delay, scan, retryWhen } from "rxjs/operators";
 
 export function load(url: string) {
     return Observable.create(observer => {
@@ -11,6 +11,7 @@ export function load(url: string) {
                 observer.error(xhr.status);
             }
         });
+
         xhr.open("GET", url);
         xhr.send();
     }).pipe(
@@ -20,16 +21,34 @@ export function load(url: string) {
 
 export function loadWithFetch(url: string) {
     return defer(() => {
-        let promise = fetch(url).then(r => r.json());
+        let promise = fetch(url)
+                        .then(response => {
+                            if (response.status === 200) {
+                                return response.json();
+                            } else {
+                                return Promise.reject(response);
+                            }
+                        });
+        
         return from(promise);
-    });
+    }).pipe(
+        retryWhen(retryStrategy())
+    );
 }
 
-function retryStrategy({ attempts = 3, delayValue = 10 }) {
+function retryStrategy({ attempts = 4, delayValue = 10 } = {}) {
     return function (errors) {
         return errors.pipe(
-            scan(acc => acc + 1, 0),
-            takeWhile(acc => acc < attempts),
+            scan(acc => {
+                console.log(errors);
+                
+                acc += 1;
+                if (acc < attempts) {
+                    return acc;
+                } else {
+                    throw new Error(errors);
+                }
+            }, 0),
             delay(delayValue)
         );
     }
